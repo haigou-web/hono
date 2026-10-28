@@ -113,6 +113,15 @@ describe('isContentTypeBinary', () => {
     ['APPLICATION/VND.APPLE.INSTALLER+XML', true],
     ['APPLICATION/JSON', false],
     ['TEXT/PLAIN', false],
+    ['text/plain; charset=utf-8', false],
+    ['text/plain; charset=us-ascii', false],
+    ['application/json; charset=UTF-8', false],
+    ['text/plain; charset=shift_jis', true],
+    ['text/plain; charset=Shift_JIS', true],
+    ['text/plain; charset="shift_jis"', true],
+    ['text/html; charset=iso-8859-1', true],
+    ['TEXT/PLAIN; CHARSET=SHIFT_JIS', true],
+    ['application/json; charset=shift_jis', true],
   ])('Should determine whether %s it is binary', (mimeType: string, expected: boolean) => {
     expect(defaultIsContentTypeBinary(mimeType)).toBe(expected)
   })

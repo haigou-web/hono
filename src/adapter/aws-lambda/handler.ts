@@ -702,14 +702,42 @@ const isLatticeEventV2 = (event: LambdaEvent): event is LatticeProxyEventV2 => {
 }
 
 /**
+ * Charsets that can be decoded as UTF-8 text without losing information.
+ */
+const DECODABLE_AS_TEXT_CHARSET_REGEXP = /^(?:utf-?8|us-ascii|ascii)$/i
+
+/**
+ * Extract the charset parameter from a Content-Type header value.
+ * @param contentType The content type to inspect.
+ * @returns The charset name, or undefined when the header does not declare one.
+ */
+const getCharsetFromContentType = (contentType: string): string | undefined => {
+  const charsetMatch = /;\s*charset\s*=\s*(?:"([^"]*)"|([^;\s]*))/i.exec(contentType)
+  if (!charsetMatch) {
+    return undefined
+  }
+  const charset = charsetMatch[1] ?? charsetMatch[2]
+  return charset.trim() || undefined
+}
+
+/**
  * Check if the given content type is binary.
  * This is a default function and may be overwritten by the user via `isContentTypeBinary` option in handler().
+ *
+ * A `text/*` media type is only safe to decode as text when its charset is UTF-8
+ * compatible. A response declaring e.g. `charset=shift_jis` holds bytes that
+ * cannot be decoded as UTF-8, so it is treated as binary and forwarded as-is.
  * @param contentType The content type to check.
  * @returns True if the content type is binary, false otherwise.
  * @deprecated `hono/aws-lambda` will be removed in v5. Install `@hono/aws-lambda` and import from there instead.
  */
 export const defaultIsContentTypeBinary = (contentType: string): boolean => {
   if (/^application\/vnd\.(?:apple\.installer|mozilla\.xul)\+xml\s*(?:;|$)/i.test(contentType)) {
+    return true
+  }
+
+  const charset = getCharsetFromContentType(contentType)
+  if (charset && !DECODABLE_AS_TEXT_CHARSET_REGEXP.test(charset)) {
     return true
   }
 
